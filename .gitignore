@@ -205,3 +205,23 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Local AI Models 
+models/
+*.gguf
+.ollama/
+  
+# Environment Secrets 
+.env
+
+# Node.js 
+node_modules/
+build/
+dist/
+# OS-specific
+.DS_Store
+Thumbs.db
