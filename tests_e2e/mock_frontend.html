@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetAgent Mock Dashboard (E2E Test Frontend)</title>
+    <!-- Tailwind CSS for UI design mimicking modern React styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .active-tab {
+            border-bottom-width: 2px;
+            border-color: #3b82f6;
+            color: #2563eb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-tight">NetAgent Security Ops Center</h1>
+            <span class="text-xs px-2 py-1 rounded bg-red-600 font-semibold" id="env-badge">MOCK ENVIRONMENT</span>
+        </div>
+    </header>
+
+    <!-- Error Boundary Banner -->
+    <div id="error-boundary-banner" class="bg-red-600 text-white text-center py-2 px-4 hidden font-semibold">
+        Warning: Connection lost or server error (500). Please try again later.
+    </div>
+
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 flex space-x-8">
+            <button id="tab-dashboard-btn" class="py-4 px-1 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 active-tab" onclick="switchTab('dashboard')">
+                Dashboard Overview
+            </button>
+            <button id="tab-scanner-btn" class="py-4 px-1 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" onclick="switchTab('scanner')">
+                Active Scanner
+            </button>
+            <button id="tab-traffic-btn" class="py-4 px-1 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" onclick="switchTab('traffic')">
+                Traffic Analyzer & Alerts
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
+
+        <!-- 1. Dashboard Overview Tab -->
+        <div id="section-dashboard" class="space-y-6">
+            <!-- Metrics Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Health Metric -->
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-emerald-500" id="card-health">
+                    <h2 class="text-sm font-medium text-gray-500 uppercase tracking-wider">System Health</h2>
+                    <p class="mt-2 text-3xl font-semibold text-emerald-600" id="metric-health">Healthy</p>
+                    <p class="mt-1 text-xs text-gray-400">Calculated from active alerts</p>
+                </div>
+                <!-- Total Scans -->
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                    <h2 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Scans Conducted</h2>
+                    <p class="mt-2 text-3xl font-semibold text-blue-600" id="metric-scans">0</p>
+                    <p class="mt-1 text-xs text-gray-400">Active scanner history count</p>
+                </div>
+                <!-- Total Alerts -->
+                <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500" id="card-alerts">
+                    <h2 class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Security Alerts</h2>
+                    <p class="mt-2 text-3xl font-semibold text-amber-600" id="metric-alerts">0</p>
+                    <p class="mt-1 text-xs text-gray-400">Captured and ingested threats</p>
+                </div>
+            </div>
+
+            <!-- Dashboard Alert Feed Preview -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-900">Recent Security Alerts</h2>
+                    <button class="text-sm text-blue-600 hover:text-blue-800 font-medium" onclick="switchTab('traffic')">View All Alerts &rarr;</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alert Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source IP</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="dashboard-recent-alerts">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Active Scanner Tab -->
+        <div id="section-scanner" class="space-y-6 hidden">
+            <!-- Scan Configuration Form -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">Configure & Start Active Scan</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                    <div>
+                        <label for="scan-target" class="block text-sm font-medium text-gray-700">Target IP Address / Range</label>
+                        <input type="text" id="scan-target" placeholder="127.0.0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <div>
+                        <label for="scan-profile" class="block text-sm font-medium text-gray-700">Scan Profile</label>
+                        <select id="scan-profile" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                            <option value="quick">Quick Scan (Common Ports)</option>
+                            <option value="full">Full Scan (Comprehensive)</option>
+                            <option value="targeted">Targeted Scan (Custom)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button id="btn-trigger-scan" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out" onclick="triggerScan()">
+                            Start Scan
+                        </button>
+                    </div>
+                </div>
+                <div id="scan-trigger-status" class="mt-2 text-sm text-gray-500 hidden"></div>
+            </div>
+
+            <!-- Scan History List -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">Scan History</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profile</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="scan-list">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Scan Details Panel (Hidden by default) -->
+            <div id="scan-details-panel" class="bg-slate-900 text-slate-100 shadow rounded-lg p-6 hidden">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                    <h3 class="text-md font-bold text-white" id="scan-details-title">Scan Details</h3>
+                    <button class="text-slate-400 hover:text-white" onclick="closeScanDetails()">Close Details</button>
+                </div>
+                <pre class="text-xs font-mono overflow-auto p-4 bg-slate-950 rounded max-h-96" id="scan-details-raw"></pre>
+            </div>
+        </div>
+
+        <!-- 3. Traffic Analyzer & Alerts Tab -->
+        <div id="section-traffic" class="space-y-6 hidden">
+            <!-- Capture Controls and PCAP Upload Split -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Live Capture Controls -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">Live Packet Sniffing & Capture</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="capture-interface" class="block text-sm font-medium text-gray-700">Network Interface</label>
+                            <select id="capture-interface" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                                <option value="eth0">eth0 (Standard Interface)</option>
+                                <option value="wlan0">wlan0 (Wireless Interface)</option>
+                                <option value="lo">lo (Loopback)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between pt-2">
+                            <div>
+                                <span class="text-sm font-medium text-gray-500">Capture Status: </span>
+                                <span id="capture-status" class="text-sm font-bold text-gray-700 uppercase">Stopped</span>
+                            </div>
+                            <button id="btn-capture-toggle" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-6 rounded-md shadow-sm transition duration-150 ease-in-out" onclick="toggleCapture()">
+                                Start Capture
+                            </button>
+                        </div>
+                        <div id="capture-status-notification" class="text-xs text-red-500 hidden mt-1"></div>
+
+                    </div>
+                </div>
+
+                <!-- PCAP Import Box -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">Import Offline PCAP File</h2>
+                    <div class="space-y-4">
+                        <div id="pcap-drop-area" class="border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-blue-500 transition duration-150 ease-in-out">
+                            <input type="file" id="file-pcap-upload" accept=".pcap,.pcapng" class="hidden" onchange="handlePcapFileSelect()">
+                            <label for="file-pcap-upload" class="cursor-pointer">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-31-31m0 0l-12 12m12-12v12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <p class="mt-1 text-sm text-gray-600 font-semibold" id="upload-label-text">Click to upload or drag & drop a PCAP file</p>
+                                <p class="mt-1 text-xs text-gray-400">Supports .pcap, .pcapng up to 50MB</p>
+                            </label>
+                        </div>
+                        <div class="flex justify-end">
+                            <button id="btn-pcap-upload" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm transition duration-150 ease-in-out" onclick="uploadPcap()" disabled>
+                                Upload & Analyze
+                            </button>
+                        </div>
+                        <div id="pcap-upload-status" class="text-sm font-medium text-center hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Complete Alert Log -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-4">Complete Alert Log</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alert Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source IP</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination IP</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Protocol</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200" id="alert-list">
+                            <!-- Dynamically populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Threat Details & AI Explainer Modal overlay -->
+        <div id="ai-explainer-modal" class="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+                <!-- Modal Header -->
+                <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center rounded-t-lg">
+                    <h3 class="text-lg font-bold">Threat Explanation & Remediation</h3>
+                    <button class="text-slate-400 hover:text-white text-xl font-bold" onclick="closeExplainer()">&times;</button>
+                </div>
+                <!-- Modal Body -->
+                <div class="p-6 overflow-y-auto space-y-4">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Threat Context</span>
+                        <p id="ai-source-info" class="text-sm font-semibold text-slate-800 mt-1">Scan finding / Alert details...</p>
+                    </div>
+                    <hr class="border-gray-200">
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Security Assessment</span>
+                        <div class="mt-2 bg-blue-50 border border-blue-200 text-blue-900 rounded p-4 text-sm whitespace-pre-line" id="ai-explanation">
+                            Thinking...
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Severity Level</span>
+                            <div class="mt-1">
+                                <span id="ai-severity" class="px-2.5 py-1 text-xs font-bold rounded uppercase">MEDIUM</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider font-semibold">Remediation Steps</span>
+                            <div class="mt-1 text-sm text-gray-700 bg-emerald-50 border border-emerald-100 rounded p-3" id="ai-remediation">
+                                Steps to secure the host...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Modal Footer -->
+                <div class="bg-gray-50 px-6 py-4 flex justify-end rounded-b-lg border-t border-gray-200">
+                    <button id="btn-close-explainer" class="bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded" onclick="closeExplainer()">
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-4 text-center mt-6 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4">
+            &copy; 2026 NetAgent Mock Server Dashboard. Designed for E2E automation testing via Playwright.
+        </div>
+    </footer>
+
+    <!-- JavaScript logic -->
+    <script>
+        // Tab routing state
+        let currentTab = 'dashboard';
+        
+        // Active polling timers
+        let scanPollTimer = null;
+        let alertPollTimer = null;
+        let isCapturing = false;
+
+        // On document load
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchScans();
+            fetchAlerts();
+            checkCaptureStatus();
+            
+            // Drag and drop listeners
+            const dropArea = document.getElementById('pcap-drop-area');
+            if (dropArea) {
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropArea.classList.add('border-blue-500');
+                    }, false);
+                });
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        dropArea.classList.remove('border-blue-500');
+                    }, false);
+                });
+                dropArea.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files.length > 0) {
+                        const file = files[0];
+                        const filename = file.name.toLowerCase();
+                        if (!(filename.endsWith('.pcap') || filename.endsWith('.pcapng'))) {
+                            const status = document.getElementById('pcap-upload-status');
+                            status.innerText = "Warning: Only .pcap and .pcapng files are supported.";
+                            status.className = "text-sm font-medium text-amber-600 text-center";
+                            status.classList.remove('hidden');
+                            return;
+                        }
+                        const fileInput = document.getElementById('file-pcap-upload');
+                        fileInput.files = files;
+                        handlePcapFileSelect();
+                    }
+                }, false);
+            }
+            
+            // Set up master pollers
+            setInterval(() => {
+                // If scanner has active running scans, poll scans
+                const runningScans = document.querySelectorAll('.scan-status-running');
+                if (runningScans.length > 0) {
+                    fetchScans();
+                }
+                
+                // If capture is active, poll alerts
+                if (isCapturing) {
+                    fetchAlerts();
+                }
+            }, 2000);
+        });
+
+        // Tab Switching
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // Toggle HTML sections
+            document.getElementById('section-dashboard').classList.toggle('hidden', tabName !== 'dashboard');
+            document.getElementById('section-scanner').classList.toggle('hidden', tabName !== 'scanner');
+            document.getElementById('section-traffic').classList.toggle('hidden', tabName !== 'traffic');
+            
+            // Toggle tab buttons styles
+            document.getElementById('tab-dashboard-btn').classList.toggle('active-tab', tabName === 'dashboard');
+            document.getElementById('tab-scanner-btn').classList.toggle('active-tab', tabName === 'scanner');
+            document.getElementById('tab-traffic-btn').classList.toggle('active-tab', tabName === 'traffic');
+        }
+
+        // Fetch scan history
+        function fetchScans() {
+            fetch('/api/scans')
+                .then(res => {
+                    if (!res.ok) throw new Error("API 500 boundary error");
+                    return res.json();
+                })
+                .then(scans => {
+                    document.getElementById('error-boundary-banner').classList.add('hidden');
+                    document.getElementById('metric-scans').innerText = scans.length;
+                    
+                    const scanListTbody = document.getElementById('scan-list');
+                    scanListTbody.innerHTML = '';
+                    
+                    if (scans.length === 0) {
+                        scanListTbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">No scans recorded yet.</td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    scans.forEach(scan => {
+                        const statusClass = scan.status === 'running' 
+                            ? 'bg-blue-100 text-blue-800 scan-status-running' 
+                            : 'bg-emerald-100 text-emerald-800';
+                        
+                        const actionButtons = scan.status === 'completed' 
+                            ? `<button class="btn-view-scan text-blue-600 hover:text-blue-900 mr-4 font-semibold" data-id="${scan.id}" onclick="viewScanDetails(${scan.id})">Details</button>
+                               <button class="btn-explain-scan text-violet-600 hover:text-violet-900 font-semibold" data-id="${scan.id}" onclick="explainThreat('scan', ${scan.id})">Explain with AI</button>`
+                            : `<span class="text-xs text-gray-400">Scanning in progress...</span>`;
+                            
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">${scan.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-semibold">${scan.target}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">${scan.profile}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="px-2.5 py-0.5 text-xs font-bold rounded-full uppercase ${statusClass}">${scan.status}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${scan.created_at || ''}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${actionButtons}</td>
+                        `;
+                        scanListTbody.appendChild(tr);
+                    });
+                })
+                .catch(err => {
+                    console.error('Error fetching scans:', err);
+                    document.getElementById('error-boundary-banner').classList.remove('hidden');
+                });
+        }
+
+        // Fetch alerts log
+        function fetchAlerts() {
+            fetch('/api/alerts')
+                .then(res => {
+                    if (!res.ok) throw new Error("API 500 boundary error");
+                    return res.json();
+                })
+                .then(alerts => {
+                    document.getElementById('error-boundary-banner').classList.add('hidden');
+                    // Update metric counter
+                    document.getElementById('metric-alerts').innerText = alerts.length;
+                    
+                    // Assess System Health
+                    updateHealthStatus(alerts);
+                    
+                    // Render to Full Alert Log
+                    const alertListTbody = document.getElementById('alert-list');
+                    alertListTbody.innerHTML = '';
+                    
+                    // Render to Dashboard Recent list (max 5)
+                    const dashListTbody = document.getElementById('dashboard-recent-alerts');
+                    dashListTbody.innerHTML = '';
+                    
+                    if (alerts.length === 0) {
+                        const emptyTr = `
+                            <tr>
+                                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">No security alerts logged yet.</td>
+                            </tr>
+                        `;
+                        alertListTbody.innerHTML = emptyTr;
+                        dashListTbody.innerHTML = `
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No security alerts logged yet.</td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    // Sort descending by ID or timestamp
+                    const sortedAlerts = [...alerts].sort((a, b) => b.id - a.id);
+                    
+                    sortedAlerts.forEach((alert, idx) => {
+                        const severityClass = getSeverityClass(alert.severity);
+                        
+                        const actionButtons = `
+                            <button class="btn-explain-alert text-violet-600 hover:text-violet-900 font-semibold" data-id="${alert.id}" onclick="explainThreat('alert', ${alert.id})">Explain with AI</button>
+                        `;
+                        
+                        // Full log entry
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">${alert.id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="px-2.5 py-0.5 text-xs font-bold rounded-full uppercase ${severityClass}">${alert.severity}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${alert.alert_type}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${alert.source_ip}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${alert.destination_ip}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${alert.protocol}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500 truncate max-w-xs">${alert.description}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${actionButtons}</td>
+                        `;
+                        alertListTbody.appendChild(tr);
+                        
+                        // Dashboard preview entry (first 5)
+                        if (idx < 5) {
+                            const dTr = document.createElement('tr');
+                            dTr.innerHTML = `
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <span class="px-2.5 py-0.5 text-xs font-bold rounded-full uppercase ${severityClass}">${alert.severity}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${alert.alert_type}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">${alert.source_ip}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono text-xs">${alert.timestamp || ''}</td>
+                            `;
+                            dashListTbody.appendChild(dTr);
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.error('Error fetching alerts:', err);
+                    document.getElementById('error-boundary-banner').classList.remove('hidden');
+                });
+        }
+
+        // Trigger active scan
+        function triggerScan() {
+            const targetInput = document.getElementById('scan-target');
+            const profileSelect = document.getElementById('scan-profile');
+            const statusDiv = document.getElementById('scan-trigger-status');
+            
+            const target = targetInput.value.trim() || '127.0.0.1';
+            const profile = profileSelect.value;
+            
+            statusDiv.innerText = "Triggering scan...";
+            statusDiv.classList.remove('hidden', 'text-red-500', 'text-green-600');
+            statusDiv.classList.add('text-gray-500');
+            
+            fetch('/api/scans', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ target, profile })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.detail || "Error triggering scan.") });
+                }
+                return res.json();
+            })
+            .then(scan => {
+                statusDiv.innerText = `Scan #${scan.id} triggered successfully against ${scan.target}!`;
+                statusDiv.classList.remove('text-gray-500', 'text-red-500');
+                statusDiv.classList.add('text-green-600');
+                fetchScans();
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                }, 3000);
+            })
+            .catch(err => {
+                console.error(err);
+                statusDiv.innerText = err.message || "Error triggering scan.";
+                statusDiv.classList.remove('text-gray-500', 'text-green-600');
+                statusDiv.classList.add('text-red-500');
+            });
+        }
+
+        // View Scan Details
+        function viewScanDetails(scanId) {
+            fetch(`/api/scans/${scanId}`)
+                .then(res => res.json())
+                .then(data => {
+                    const panel = document.getElementById('scan-details-panel');
+                    const title = document.getElementById('scan-details-title');
+                    const rawPre = document.getElementById('scan-details-raw');
+                    
+                    title.innerText = `Detailed Scan Report: Scan #${data.id} (${data.target})`;
+                    rawPre.innerText = JSON.stringify(data, null, 2);
+                    
+                    panel.classList.remove('hidden');
+                    panel.scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(err => console.error(err));
+        }
+
+        function closeScanDetails() {
+            document.getElementById('scan-details-panel').classList.add('hidden');
+        }
+
+        // Capture State Check
+        function checkCaptureStatus() {
+            // We can just verify if the toggle button matches the status
+            // If the mock server has endpoints to query capture status, we query them.
+            // Since there is no status query in contracts, we handle locally.
+        }
+
+        // Toggle Live Capture
+        function toggleCapture() {
+            const btn = document.getElementById('btn-capture-toggle');
+            const statusIndicator = document.getElementById('capture-status');
+            const interfaceSelect = document.getElementById('capture-interface');
+            const notification = document.getElementById('capture-status-notification');
+            
+            if (notification) {
+                notification.classList.add('hidden');
+                notification.innerText = '';
+            }
+            
+            const nextAction = isCapturing ? 'stop' : 'start';
+            const body = { action: nextAction };
+            if (nextAction === 'start') {
+                body.interface = interfaceSelect.value;
+            }
+            
+            fetch('/api/alerts/capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(err => { throw new Error(err.detail || "Failed to toggle capture") });
+                }
+                return res.json();
+            })
+            .then(statusObj => {
+                if (nextAction === 'start') {
+                    isCapturing = true;
+                    btn.innerText = 'Stop Capture';
+                    btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                    btn.classList.add('bg-red-600', 'hover:bg-red-700');
+                    statusIndicator.innerText = `Capturing (${statusObj.interface || interfaceSelect.value})...`;
+                    statusIndicator.className = "text-sm font-bold text-red-600 animate-pulse uppercase";
+                } else {
+                    isCapturing = false;
+                    btn.innerText = 'Start Capture';
+                    btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                    statusIndicator.innerText = 'Stopped';
+                    statusIndicator.className = "text-sm font-bold text-gray-700 uppercase";
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                if (notification) {
+                    notification.innerText = err.message || "Failed to toggle capture";
+                    notification.classList.remove('hidden');
+                }
+            });
+        }
+
+        // PCAP File Selection UI Handling
+        function handlePcapFileSelect() {
+            const input = document.getElementById('file-pcap-upload');
+            const text = document.getElementById('upload-label-text');
+            const uploadBtn = document.getElementById('btn-pcap-upload');
+            
+            if (input.files.length > 0) {
+                text.innerText = `Selected File: ${input.files[0].name}`;
+                uploadBtn.disabled = false;
+            } else {
+                text.innerText = 'Click to upload or drag & drop a PCAP file';
+                uploadBtn.disabled = true;
+            }
+        }
+
+        // Upload and Analyze PCAP
+        function uploadPcap() {
+            const input = document.getElementById('file-pcap-upload');
+            const status = document.getElementById('pcap-upload-status');
+            const uploadBtn = document.getElementById('btn-pcap-upload');
+            
+            if (input.files.length === 0) return;
+            
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            status.innerText = "Uploading & analyzing PCAP file. Please wait...";
+            status.className = "text-sm font-medium text-blue-600 text-center";
+            status.classList.remove('hidden');
+            uploadBtn.disabled = true;
+            
+            fetch('/api/alerts/analyze-pcap', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(result => {
+                status.innerText = `PCAP Ingested! Generated ${result.alerts_generated} alerts.`;
+                status.className = "text-sm font-medium text-emerald-600 text-center";
+                fetchAlerts(); // Reload alert lists
+                input.value = ''; // Reset input
+                document.getElementById('upload-label-text').innerText = 'Click to upload or drag & drop a PCAP file';
+                
+                setTimeout(() => {
+                    status.classList.add('hidden');
+                }, 4000);
+            })
+            .catch(err => {
+                console.error(err);
+                status.innerText = "Error analyzing PCAP file.";
+                status.className = "text-sm font-medium text-red-600 text-center";
+                uploadBtn.disabled = false;
+            });
+        }
+
+        // AI explanation fetch & modal populating
+        function explainThreat(sourceType, sourceId) {
+            const modal = document.getElementById('ai-explainer-modal');
+            const info = document.getElementById('ai-source-info');
+            const desc = document.getElementById('ai-explanation');
+            const sev = document.getElementById('ai-severity');
+            const med = document.getElementById('ai-remediation');
+            
+            info.innerText = `Generating AI explanation for ${sourceType.toUpperCase()} ID #${sourceId}...`;
+            desc.innerText = 'Analyzing vulnerability signatures and formulating recommendations...';
+            sev.innerText = 'Loading...';
+            sev.className = "px-2.5 py-1 text-xs font-bold rounded uppercase bg-gray-200 text-gray-800";
+            med.innerText = 'Retrieving threat remediation protocol...';
+            
+            modal.classList.remove('hidden');
+            
+            fetch('/api/explain', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    source_type: sourceType,
+                    source_id: sourceId
+                })
+            })
+            .then(res => res.json())
+            .then(explanation => {
+                info.innerText = `Source Context: ${sourceType.toUpperCase()} Record #${sourceId}`;
+                desc.innerText = explanation.explanation;
+                sev.innerText = explanation.severity;
+                
+                const sevClass = getSeverityClass(explanation.severity);
+                sev.className = `px-2.5 py-1 text-xs font-bold rounded uppercase ${sevClass}`;
+                med.innerText = explanation.remediation;
+            })
+            .catch(err => {
+                console.error(err);
+                info.innerText = "Error retrieving explanation.";
+                desc.innerText = "The AI Threat Explainer module could not respond. Standard fallback error returned.";
+                sev.innerText = "UNKNOWN";
+                sev.className = "px-2.5 py-1 text-xs font-bold rounded uppercase bg-red-100 text-red-800";
+                med.innerText = "Inspect network connectivity or verify local Ollama mock-fallback is enabled.";
+            });
+        }
+
+        function closeExplainer() {
+            document.getElementById('ai-explainer-modal').classList.add('hidden');
+        }
+
+        // Helper: get severity CSS class
+        function getSeverityClass(severity) {
+            switch(String(severity).toLowerCase()) {
+                case 'critical':
+                    return 'bg-red-200 text-red-900 border border-red-300';
+                case 'high':
+                    return 'bg-orange-200 text-orange-900 border border-orange-300';
+                case 'medium':
+                    return 'bg-amber-200 text-amber-900 border border-amber-300';
+                case 'low':
+                    return 'bg-blue-100 text-blue-800 border border-blue-200';
+                default:
+                    return 'bg-gray-100 text-gray-800 border border-gray-200';
+            }
+        }
+
+        // Helper: Calculate system health from alert pool
+        function updateHealthStatus(alerts) {
+            const healthEl = document.getElementById('metric-health');
+            const cardEl = document.getElementById('card-health');
+            
+            const criticalAlerts = alerts.filter(a => a.severity.toLowerCase() === 'critical');
+            const highAlerts = alerts.filter(a => a.severity.toLowerCase() === 'high');
+            const mediumAlerts = alerts.filter(a => a.severity.toLowerCase() === 'medium');
+            
+            if (criticalAlerts.length > 0) {
+                healthEl.innerText = "Critical";
+                healthEl.className = "mt-2 text-3xl font-semibold text-red-600";
+                cardEl.className = "bg-white rounded-lg shadow p-6 border-l-4 border-red-500";
+            } else if (highAlerts.length > 0) {
+                healthEl.innerText = "Warning";
+                healthEl.className = "mt-2 text-3xl font-semibold text-orange-600";
+                cardEl.className = "bg-white rounded-lg shadow p-6 border-l-4 border-orange-500";
+            } else if (mediumAlerts.length > 0) {
+                healthEl.innerText = "Elevated Risk";
+                healthEl.className = "mt-2 text-3xl font-semibold text-amber-600";
+                cardEl.className = "bg-white rounded-lg shadow p-6 border-l-4 border-amber-500";
+            } else {
+                healthEl.innerText = "Healthy";
+                healthEl.className = "mt-2 text-3xl font-semibold text-emerald-600";
+                cardEl.className = "bg-white rounded-lg shadow p-6 border-l-4 border-emerald-500";
+            }
+        }
+    </script>
+</body>
+</html>
