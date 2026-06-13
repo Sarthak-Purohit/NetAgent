@@ -467,3 +467,23 @@ def reject_agent_action(
 
     db.commit()
     return {"success": True, "message": "Actions rejected. Session closed."}
+
+
+# === AI Security Copilot Chatbot API ===
+
+@app.post("/api/chat", response_model=schemas.ChatResponse)
+async def chat_with_copilot(
+    payload: schemas.ChatRequest
+):
+    """
+    Chat endpoint for conversational AI Security Copilot.
+    """
+    try:
+        response_text = await ai_explainer.chat_with_ollama(payload.message, payload.history)
+        return schemas.ChatResponse(response=response_text)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Chat query failed: {e}"
+        )
+

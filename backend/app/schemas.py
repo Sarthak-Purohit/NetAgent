@@ -230,3 +230,17 @@ class AgentSessionSummary(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- Chatbot Schemas ---
+
+class ChatMessage(BaseModel):
+    role: str  # system, user, assistant
+    content: str
+
+class ChatRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = []
+
+class ChatResponse(BaseModel):
+    response: str
+

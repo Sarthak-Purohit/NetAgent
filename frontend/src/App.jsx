@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import Scanner from './components/Scanner';
 import Traffic from './components/Traffic';
 import AutonomousAgent from './components/AutonomousAgent';
+import AiChatbot from './components/AiChatbot';
 import AiExplainerModal from './components/AiExplainerModal';
 import ErrorBoundaryBanner from './components/ErrorBoundaryBanner';
 
@@ -103,6 +104,13 @@ export default function App() {
           >
             🤖 Autonomous Agent
           </button>
+          <button
+            id="tab-copilot-btn"
+            className={`py-4 px-1 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 ${activeTab === 'copilot' ? 'active-tab' : ''}`}
+            onClick={() => setActiveTab('copilot')}
+          >
+            💬 AI Copilot
+          </button>
         </div>
       </nav>
 
@@ -130,6 +138,10 @@ export default function App() {
 
         <div id="section-agent" className={activeTab === 'agent' ? 'space-y-6' : 'hidden'}>
           <AutonomousAgent />
+        </div>
+
+        <div id="section-copilot" className={activeTab === 'copilot' ? 'space-y-6' : 'hidden'}>
+          <AiChatbot />
         </div>
       </main>
 

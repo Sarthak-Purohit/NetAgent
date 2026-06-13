@@ -45,3 +45,10 @@ ORIGINAL_REQUEST.md
 PROJECT.md
 TEST_INFRA.md
 
+# Compiled binaries and local outputs
+netsage
+netsage_cli/netsage
+results.json
+NetAgent/
+
+

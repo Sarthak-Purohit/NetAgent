@@ -175,3 +175,91 @@ async def explain_alert(alert: Alert) -> Dict[str, str]:
     except Exception as e:
         logger.warning(f"Ollama alert explanation failed: {e}. Falling back to mock explanation.")
         return get_mock_alert_explanation(alert)
+
+async def chat_with_ollama(message: str, history: list) -> str:
+    url = f"{OLLAMA_BASE_URL.rstrip('/')}/api/chat"
+    
+    # 1. Start with system message matching user instructions
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a cybersecurity auditor. Use tools to find security risks. Answer the user's questions about security, port scans, network alerts, and remediation steps."
+        }
+    ]
+    
+    # 2. Append history
+    for msg in history:
+        messages.append({
+            "role": msg.role,
+            "content": msg.content
+        })
+        
+    # 3. Append current user message
+    messages.append({
+        "role": "user",
+        "content": message
+    })
+    
+    payload = {
+        "model": OLLAMA_MODEL,
+        "messages": messages,
+        "stream": False
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT) as client:
+            response = await client.post(url, json=payload)
+            response.raise_for_status()
+            res_json = response.json()
+            message_obj = res_json.get("message", {})
+            return message_obj.get("content", "No response returned from AI.")
+    except Exception as e:
+        logger.warning(f"Ollama chat query failed: {e}. Using rule-based fallback response.")
+        return get_fallback_chat_response(message)
+
+def get_fallback_chat_response(message: str) -> str:
+    msg_lower = message.lower()
+    
+    if "auditor" in msg_lower or "instruction" in msg_lower or "rules" in msg_lower:
+        return (
+            "As a cybersecurity auditor, I have loaded the general instruction: **'You are a cybersecurity auditor. Use tools to find security risks'**.\n\n"
+            "In this local offline fallback mode, I can analyze typical security risks. Tell me what ports or services you are concerned about (e.g., SSH, FTP, Database, RDP)."
+        )
+    if "ssh" in msg_lower:
+        return (
+            "### SSH Security Advisory (Port 22)\n\n"
+            "SSH is commonly targeted for brute-force attacks.\n"
+            "* **Remediation**:\n"
+            "  1. Disable password authentication (`PasswordAuthentication no` in `/etc/ssh/sshd_config`) and enforce public-key authentication.\n"
+            "  2. Change the default port from 22 to a random high port.\n"
+            "  3. Use tools like `Fail2Ban` to block IPs with excessive authentication failures."
+        )
+    if "db" in msg_lower or "mysql" in msg_lower or "postgres" in msg_lower or "database" in msg_lower:
+        return (
+            "### Database Exposure Advisory (Port 3306/5432)\n\n"
+            "Exposed database interfaces are high-risk targets.\n"
+            "* **Remediation**:\n"
+            "  1. Bind database services to `127.0.0.1` (localhost only) unless remote access is strictly required.\n"
+            "  2. Restrict external firewall access to trusted IP ranges or enforce connection via a VPN.\n"
+            "  3. Use strong, unique credentials and disable remote root access."
+        )
+    if "scan" in msg_lower or "scanner" in msg_lower:
+        return (
+            "### Scan Recommendations\n\n"
+            "Network scanning helps identify exposed surface area.\n"
+            "* **Best Practices**:\n"
+            "  1. Run **Quick Scans** weekly to detect unexpected new open ports.\n"
+            "  2. Run **Full Scans** monthly for a deeper dive into banners and version numbers.\n"
+            "  3. Always audit scan results to ensure no plaintext protocols (FTP, Telnet) are exposed."
+        )
+    
+    return (
+        "🤖 **NetAgent AI Copilot (Offline Fallback Mode)**\n\n"
+        "I am currently running in offline fallback mode because the local Ollama instance is disconnected.\n\n"
+        "Here is what you can ask me:\n"
+        "* How to secure **SSH** (port 22)?\n"
+        "* What are the risks of exposed **databases**?\n"
+        "* How does the NetAgent **Active Scanner** work?\n\n"
+        "Please connect/start your local Ollama server to unlock full conversational AI reasoning."
+    )
+
