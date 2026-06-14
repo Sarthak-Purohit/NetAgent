@@ -306,10 +306,12 @@ Generate a concise report including:
 	jsonPayload, _ := json.Marshal(payload)
 	reqURL := fmt.Sprintf("%s/api/generate", ollamaURL)
 
-	client := &http.Client{Timeout: 15 * time.Second}
+	// Use a generous 120-second timeout to allow the model to load into memory on CPU
+	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Post(reqURL, "application/json", bytes.NewBuffer(jsonPayload))
 
 	if err != nil {
+		fmt.Printf("[-] Ollama connection error: %v\n", err)
 		fmt.Println("[-] Ollama is offline or timed out. Falling back to local offline rules report...")
 		printOfflineReport(report)
 		return
