@@ -10,7 +10,7 @@ logger = logging.getLogger("netagent.ai_explainer")
 # Environment configurations
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama2")
-OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "10.0"))
+OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "120.0"))
 
 def generate_scan_prompt(scan: Scan) -> str:
     ports_info = []
