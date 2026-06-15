@@ -10,7 +10,9 @@ Project NetAgent integrates several modules into a unified security dashboard:
 1. **Active Scan Module**: Uses socket-based scanning to discover open ports, services, banners, and vulnerabilities on target hosts/networks.
 2. **Passive Analysis Module**: Uses Scapy to sniff live packets or parse uploaded PCAP/PCAPNG files, flagging anomalies such as port scans, DDoS, and signature-based threats.
 3. **AI Threat Explainer**: Communicates with a local, air-gapped Ollama instance to analyze scans or alerts, providing detailed explanations, severity assessments, and remediation steps.
-4. **React Frontend (Vite)**: An interactive web dashboard displaying real-time traffic charts, active alerts feed, active scanner controller, and interactive AI explanation panels.
+4. **AI Security Copilot Chatbot**: An interactive, multi-turn conversational interface that helps security administrators query host security, troubleshoot vulnerabilities, and plan mitigations.
+5. **Semi-Autonomous Agent Engine**: A multi-step threat investigator that chains scanner results and AI-based threat analysis to determine if deep scans are required, proposes precise host-level remediation commands (iptables rules), and waits for human operator approval before execution.
+6. **React Frontend (Vite)**: An interactive web dashboard displaying real-time traffic charts, active alerts feed, active scanner controller, conversational chatbot panels, and the Semi-Autonomous Agent interface.
 
 ---
 
@@ -100,6 +102,24 @@ Passive live packet sniffing requires access to low-level socket APIs.
 2. Click **Explain Threat**.
 3. NetAgent queries Ollama to generate a JSON response with a clear threat explanation, custom severity rating, and remediation checklists.
 4. *Air-Gap Fallback*: If Ollama is offline or slow, the system automatically falls back to an offline rule-based mock explainer so operations are uninterrupted.
+
+### AI Security Copilot Chat
+1. Go to the **🤖 AI Copilot** tab in the main navigation.
+2. Type any cybersecurity question, port query, or mitigation troubleshooting request (e.g., *"How can I secure SSH port 22?"*).
+3. The chatbot retains conversation history and queries the local Ollama instance for conversational, step-by-step guidance.
+4. *Fallback Mode*: If Ollama is offline, the chatbot enters *Offline Fallback Mode*, offering interactive pre-configured advice for critical services (SSH, Database, Active Scanner).
+
+### Semi-Autonomous Agent
+1. Go to the **🤖 Autonomous Agent** tab.
+2. Enter a target network IP/subnet (e.g., `192.168.1.15`) and select a scan profile.
+3. Click **Start Investigation** to launch the autonomous threat hunting loop:
+   * **Phase 1**: Initiates the session and logs the target.
+   * **Phase 2**: Triggers an active port scan.
+   * **Phase 3**: Analyzes scan results with local LLM.
+   * **Phase 4**: If severity is Critical/High, escalates to a deep scan; otherwise proceeds.
+   * **Phase 5**: Generates actionable remediation commands (such as `iptables` drop rules) and enters `AWAITING APPROVAL`.
+4. Review the proposed action cards. Click **Approve & Execute** to apply the rules (simulated shell output) or **Reject** to close the session safely.
+
 
 ---
 
@@ -198,3 +218,83 @@ Passive live packet sniffing requires access to low-level socket APIs.
     "remediation": "Configure firewall rules to rate-limit incoming TCP SYN packets, block the source IP address..."
   }
   ```
+
+#### `POST /api/chat`
+- **Purpose**: Conversational chat interface with AI Copilot.
+- **Request Body**:
+  ```json
+  {
+    "message": "Explain port 22 security",
+    "history": [
+      {"role": "user", "content": "Hello"},
+      {"role": "assistant", "content": "Hello! How can I assist you with network security today?"}
+    ]
+  }
+  ```
+- **Response** (200 OK):
+  ```json
+  {
+    "response": "Port 22 hosts the SSH service, which is used for secure remote management..."
+  }
+  ```
+
+---
+
+### Semi-Autonomous Agent Engine
+
+#### `POST /api/agent/sessions`
+- **Purpose**: Starts a new semi-autonomous investigation session on a target.
+- **Request Body**:
+  ```json
+  {
+    "target": "192.168.1.15",
+    "profile": "quick"
+  }
+  ```
+- **Response** (201 Created):
+  ```json
+  {
+    "id": 1,
+    "target": "192.168.1.15",
+    "profile": "quick",
+    "status": "running",
+    "created_at": "2026-06-16T04:20:00Z",
+    "steps": []
+  }
+  ```
+
+#### `GET /api/agent/sessions`
+- **Purpose**: Lists all investigation sessions and their status.
+- **Response** (200 OK): Array of session objects containing active steps.
+
+#### `POST /api/agent/sessions/{session_id}/approve/{step_id}`
+- **Purpose**: Approve and execute the proposed remediation actions.
+- **Response** (200 OK):
+  ```json
+  {
+    "success": true,
+    "message": "Actions approved. Executing remediation..."
+  }
+  ```
+
+---
+
+### Autonomous Agent Flowchart
+
+```mermaid
+graph TD
+    Start([Start Session]) --> Scan[Active Port Scan]
+    Scan --> AI[AI Threat Analysis]
+    AI --> Assess{AI Severity Assessment}
+    Assess -->|Critical / High| DeepScan[Deep Scan + Re-Analyze]
+    Assess -->|Medium / Low| Propose[Propose Remediation]
+    DeepScan --> Propose
+    Propose --> Check{Actionable?}
+    Check -->|No| Complete([Complete Session])
+    Check -->|Yes| Await[Pause & Await Approval]
+    Await -->|Approved| Execute[Execute iptables Remediation]
+    Await -->|Rejected| Close[Close Session without Action]
+    Execute --> Complete
+    Close --> Complete
+```
+
