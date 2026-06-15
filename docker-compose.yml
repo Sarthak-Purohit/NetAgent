@@ -14,7 +14,7 @@ services:
     environment:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=llama2
-      - OLLAMA_TIMEOUT=10.0
+      - OLLAMA_TIMEOUT=120.0
     volumes:
       - backend-data:/app
     extra_hosts:
