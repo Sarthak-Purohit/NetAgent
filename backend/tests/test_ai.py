@@ -26,12 +26,12 @@ async def test_explain_scan_ollama_online(client, db_session):
         "response": '{"explanation": "Ollama explanation with CVE-2021-41773", "severity": "critical", "remediation": "Disable unused services"}'
     }
 
-    with patch("httpx.AsyncClient.post") as mock_post:
-        mock_response = AsyncMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_ollama_response
-        mock_response.raise_for_status = MagicMock()
-        mock_post.return_value = mock_response
+    with patch("app.ai_explainer.query_ollama") as mock_query:
+        mock_query.return_value = {
+            "explanation": "Ollama explanation with CVE-2021-41773",
+            "severity": "critical",
+            "remediation": "Disable unused services"
+        }
 
         response = await client.post("/api/explain", json={"source_type": "scan", "source_id": scan.id})
         assert response.status_code == 200
@@ -58,8 +58,8 @@ async def test_explain_scan_ollama_offline_fallback(client, db_session):
     db_session.add(scan_result)
     db_session.commit()
 
-    # Make httpx raise exception to simulate offline/failure
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Connection refused")):
+    # Make query_ollama raise exception to simulate offline/failure
+    with patch("app.ai_explainer.query_ollama", side_effect=Exception("Connection refused")):
         response = await client.post("/api/explain", json={"source_type": "scan", "source_id": scan.id})
         assert response.status_code == 200
         data = response.json()
@@ -84,7 +84,7 @@ async def test_explain_scan_no_vulns_fallback(client, db_session):
     db_session.add(scan_result)
     db_session.commit()
 
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Connection refused")):
+    with patch("app.ai_explainer.query_ollama", side_effect=Exception("Connection refused")):
         response = await client.post("/api/explain", json={"source_type": "scan", "source_id": scan.id})
         assert response.status_code == 200
         data = response.json()
@@ -106,7 +106,7 @@ async def test_explain_alert_ddos_fallback(client, db_session):
     db_session.commit()
     db_session.refresh(alert)
 
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Connection refused")):
+    with patch("app.ai_explainer.query_ollama", side_effect=Exception("Connection refused")):
         response = await client.post("/api/explain", json={"source_type": "alert", "source_id": alert.id})
         assert response.status_code == 200
         data = response.json()
@@ -128,7 +128,7 @@ async def test_explain_alert_port_scan_fallback(client, db_session):
     db_session.commit()
     db_session.refresh(alert)
 
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Connection refused")):
+    with patch("app.ai_explainer.query_ollama", side_effect=Exception("Connection refused")):
         response = await client.post("/api/explain", json={"source_type": "alert", "source_id": alert.id})
         assert response.status_code == 200
         data = response.json()
